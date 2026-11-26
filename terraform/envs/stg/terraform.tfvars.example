@@ -19,7 +19,7 @@ db_final_snapshot      = false
 full_monitoring    = false # ログの ERROR のみ
 log_retention_days = 7
 
-github_owner     = "your-github-username" # 未定（確認事項）
-github_repo      = "your-repository-name" # 未定（確認事項）
+github_owner     = "sumidann916"
+github_repo      = "nagoyameshi-aws"
 github_branch    = "develop"              # 未定（確認事項）
 require_approval = false

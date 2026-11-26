@@ -19,7 +19,7 @@ db_final_snapshot      = true
 full_monitoring    = true
 log_retention_days = 14
 
-github_owner     = "your-github-username" # 未定（確認事項）
-github_repo      = "your-repository-name" # 未定（確認事項）
+github_owner     = "sumidann916"
+github_repo      = "nagoyameshi-aws"
 github_branch    = "main"
 require_approval = false

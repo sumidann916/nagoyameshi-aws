@@ -8,27 +8,28 @@
 
 このプロジェクトは、Terraform構成で作成される CodePipeline により、自動的にデプロイすることを想定しています。
 
+| ディレクトリ・ファイル | 内容 |
+|---|---|
+| `laravel-nagoyameshi/` | Laravel アプリケーション |
+| `docker/` | 本番用の nginx・PHP-FPM イメージ |
+| `buildspec.yml` | CodeBuild（イメージのビルド・ECR への push・マイグレーション） |
+| `terraform/` | AWS 構成（手順は [terraform/README.md](terraform/README.md)） |
+
 ---
 
 ### ✅ 必須手順（Terraform側）
 
-Terraformプロジェクト側の `terraform.tfvars` に、このLaravel アプリケーションを管理するリポジトリの情報を記入してください：
+`terraform/envs/prod` と `terraform/envs/stg` の `terraform.tfvars.example` を `terraform.tfvars` にコピーし、値を入れてください（`terraform.tfvars` は Git に含めません）。
+このリポジトリの情報は記入済みです：
 
 ```hcl
-github_owner       = "your-github-username"
-github_repo        = "your-repository-name"
-github_oauth_token = "your-token"
-github_branch      = "main"
+github_owner  = "sumidann916"
+github_repo   = "nagoyameshi-aws"
+github_branch = "main" # 検証（stg）は develop（未定・確認事項）
 ```
 
-Terraform を init → plan → apply で実行した際に、AWS CodePipeline が作成され、
-このリポジトリが自動的にデプロイ対象として取り込まれるように設定してください。
-
-```bash
-terraform init
-terraform plan -var-file="terraform.tfvars"
-terraform apply -var-file="terraform.tfvars"
-```
+GitHub との接続はトークンではなく AWS CodeConnections を使います。
+`terraform apply` 後に AWS コンソールで接続を「利用可能」にする手順も含め、[terraform/README.md](terraform/README.md) を参照してください。
 
 ---
 
