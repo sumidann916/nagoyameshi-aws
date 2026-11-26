@@ -1,5 +1,4 @@
 locals {
-  restricted   = length(var.allowed_cidrs) > 0
   ssm_arn_base = "arn:aws:ssm:${var.region}:${var.account_id}:parameter${var.ssm_path}"
 
   log_config = {

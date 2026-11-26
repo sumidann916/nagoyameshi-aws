@@ -1,6 +1,7 @@
-# 本番・検証で共有する ALB
+# 環境ごとの ALB
 #  - 80 は 443 へリダイレクトのみ（要件「https のみ」）
-#  - 443 の既定動作は 404。環境ごとの転送ルールは modules/ecs_service で作る
+#  - 443 の既定動作は 404。ホスト名ごとの転送ルールは modules/ecs_service で作る
+#  - 接続できる送信元はセキュリティグループで制限する（検証は社内の IP のみ）
 
 resource "aws_lb" "this" {
   name                       = var.name

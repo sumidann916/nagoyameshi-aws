@@ -1,4 +1,4 @@
-# NAT Gateway は 1a の 1つだけ（コスト優先。設計書「NAT Gateway の要否とコスト」）
+# NAT Gateway は環境ごとに 1a の 1つだけ（コスト優先。設計書「NAT Gateway の要否とコスト」）
 
 resource "aws_eip" "nat" {
   domain = "vpc"

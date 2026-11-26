@@ -1,5 +1,6 @@
 # 本番・検証で共有するリソース
-# VPC・NAT・ALB・ACM・ECS クラスター・ECR・SNS・画像用 S3＋CloudFront・アーティファクト用 S3・CodeConnections・Budgets
+# ACM・Route 53・ECS クラスター・ECR・SNS・画像用 S3＋CloudFront・アーティファクト用 S3・CodeConnections・Budgets
+# VPC・NAT Gateway・ALB は環境ごと（envs/prod・envs/stg）
 
 terraform {
   required_version = ">= 1.10"

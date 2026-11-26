@@ -21,5 +21,5 @@ variable "alarm_email" {
 variable "monthly_budget_usd" {
   description = "AWS Budgets の月額上限（USD）。80% を超えるとメール通知"
   type        = number
-  default     = 250
+  default     = 350
 }

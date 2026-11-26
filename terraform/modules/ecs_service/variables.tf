@@ -38,17 +38,6 @@ variable "host_name" {
   type        = string
 }
 
-variable "allowed_cidrs" {
-  description = "空なら誰でもアクセス可（本番）。指定するとその送信元 IP だけ転送し、それ以外は 403（検証）"
-  type        = list(string)
-  default     = []
-}
-
-variable "rule_priority" {
-  description = "転送ルールの優先度。allowed_cidrs 指定時は +10 の優先度で 403 ルールも作る"
-  type        = number
-}
-
 # --- task ---
 variable "app_image" {
   description = "PHP-FPM（Laravel）イメージ"

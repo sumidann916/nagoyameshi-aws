@@ -1,14 +1,14 @@
 resource "aws_security_group" "ecs" {
   name        = "${local.name}-ecs"
   description = "ECS tasks ${local.name}"
-  vpc_id      = local.s.vpc_id
+  vpc_id      = module.network.vpc_id
   tags        = { Name = "${local.name}-ecs" }
 }
 
 resource "aws_vpc_security_group_ingress_rule" "ecs_from_alb" {
   security_group_id            = aws_security_group.ecs.id
   description                  = "HTTP from ALB only"
-  referenced_security_group_id = local.s.alb_sg_id
+  referenced_security_group_id = module.alb.alb_sg_id
   ip_protocol                  = "tcp"
   from_port                    = 80
   to_port                      = 80

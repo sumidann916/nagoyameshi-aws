@@ -1,4 +1,4 @@
-# VPC 10.0.0.0/16｜2 AZ × 3 階層（public / private-app / private-db）
+# VPC（環境ごと。本番 10.0.0.0/16・検証 10.1.0.0/16）｜2 AZ × 3 階層（public / private-app / private-db）
 
 resource "aws_vpc" "this" {
   cidr_block           = var.cidr_block

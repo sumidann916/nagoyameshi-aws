@@ -18,7 +18,7 @@ module "cicd" {
   cluster_name          = local.s.ecs_cluster_name
   service_name          = module.ecs.service_name
   migration_task_family = module.ecs.migration_task_family
-  subnet_ids            = local.s.app_subnet_ids
+  subnet_ids            = module.network.app_subnet_ids
   ecs_sg_id             = aws_security_group.ecs.id
   pass_role_arns        = [module.ecs.execution_role_arn, module.ecs.task_role_arn]
 

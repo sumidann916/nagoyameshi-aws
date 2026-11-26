@@ -2,9 +2,10 @@
 env            = "prod"
 tfstate_bucket = "nagoyameshi-tfstate-xxxxxxxx" # bootstrap の出力
 
+vpc_cidr = "10.0.0.0/16" # 本番 10.0.0.0/16・検証 10.1.0.0/16
+
 subdomain     = "" # APEX（example.com）
 allowed_cidrs = [] # 誰でもアクセス可
-rule_priority = 30
 
 app_env           = "production"
 mail_from_address = "no-reply@example.com" # 未定（確認事項）

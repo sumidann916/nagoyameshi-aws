@@ -5,14 +5,12 @@ module "ecs" {
   account_id = local.account_id
 
   cluster_arn = local.s.ecs_cluster_arn
-  vpc_id      = local.s.vpc_id
-  subnet_ids  = local.s.app_subnet_ids
+  vpc_id      = module.network.vpc_id
+  subnet_ids  = module.network.app_subnet_ids
   ecs_sg_id   = aws_security_group.ecs.id
 
-  https_listener_arn = local.s.https_listener_arn
+  https_listener_arn = module.alb.https_listener_arn
   host_name          = local.host_name
-  allowed_cidrs      = var.allowed_cidrs
-  rule_priority      = var.rule_priority
 
   # 最初は環境のタグ（prod / stg）。デプロイ後はコミット ID のタグに置き換わる
   app_image   = "${local.s.ecr_repository_urls["app"]}:${var.env}"

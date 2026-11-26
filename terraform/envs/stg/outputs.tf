@@ -22,3 +22,11 @@ output "migration_task_family" {
 output "ecs_security_group_id" {
   value = aws_security_group.ecs.id
 }
+
+output "app_subnet_ids" {
+  value = module.network.app_subnet_ids
+}
+
+output "alb_dns_name" {
+  value = module.alb.alb_dns_name
+}

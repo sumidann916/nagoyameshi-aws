@@ -22,6 +22,12 @@ variable "tfstate_bucket" {
   type        = string
 }
 
+# --- ネットワーク ---
+variable "vpc_cidr" {
+  description = "環境ごとの VPC（本番 10.0.0.0/16・検証 10.1.0.0/16）"
+  type        = string
+}
+
 # --- ドメイン・アクセス ---
 variable "subdomain" {
   description = "空なら APEX（本番）。検証は \"stg\""
@@ -29,14 +35,9 @@ variable "subdomain" {
 }
 
 variable "allowed_cidrs" {
-  description = "空なら誰でもアクセス可。検証は社内の IP（例: [\"203.0.113.10/32\"]）"
+  description = "ALB に接続できる送信元。空なら誰でも（本番）。検証は社内の IP（例: [\"203.0.113.10/32\"]）"
   type        = list(string)
   default     = []
-}
-
-variable "rule_priority" {
-  description = "ALB リスナールールの優先度（検証 10、本番 30。検証の 403 ルールは +10 の 20）"
-  type        = number
 }
 
 # --- アプリ ---

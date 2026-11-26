@@ -8,36 +8,9 @@ output "zone_id" {
   value = data.aws_route53_zone.this.zone_id
 }
 
-output "vpc_id" {
-  value = module.network.vpc_id
-}
-
-output "app_subnet_ids" {
-  value = module.network.app_subnet_ids
-}
-
-output "db_subnet_ids" {
-  value = module.network.db_subnet_ids
-}
-
-output "alb_arn_suffix" {
-  value = module.alb.alb_arn_suffix
-}
-
-output "alb_dns_name" {
-  value = module.alb.alb_dns_name
-}
-
-output "alb_zone_id" {
-  value = module.alb.alb_zone_id
-}
-
-output "alb_sg_id" {
-  value = module.alb.alb_sg_id
-}
-
-output "https_listener_arn" {
-  value = module.alb.https_listener_arn
+output "certificate_arn" {
+  description = "検証済みの証明書（example.com と *.example.com）。本番・検証の ALB で使う"
+  value       = aws_acm_certificate_validation.this.certificate_arn
 }
 
 output "ecs_cluster_arn" {

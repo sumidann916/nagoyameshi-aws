@@ -5,12 +5,13 @@ NAGOYAMESHI（Laravel）を AWS で動かすための Terraform です。
 
 - 東京リージョン（ap-northeast-1）
 - 本番（`example.com`）と検証（`stg.example.com`）の 2環境
-- VPC・NAT Gateway・ALB は 2環境で共有
+- VPC・NAT Gateway・ALB は環境ごとに分ける（本番 10.0.0.0/16、検証 10.1.0.0/16。NAT Gateway は各 1つ）
+- ECS クラスター・ECR・ACM 証明書・Route 53・CloudFront・SNS などは 2環境で共有
 - ECS Fargate のタスクは nginx と PHP-FPM の 2コンテナ構成
 - デプロイは ECS 標準のブルーグリーン方式。本番では Auto Scaling で 2〜4 タスクに増減
 - RDS for MySQL 8.4。本番は Multi-AZ、検証は Single-AZ。自動バックアップは 7日
 - タスクにはパブリック IP を付けない。外部への通信は NAT Gateway を経由
-- 検証サイトには、許可した IP からしかアクセスできない（ALB のリスナールールで制限）
+- 検証サイトには、許可した IP からしかアクセスできない（検証用 ALB のセキュリティグループで制限）
 - CloudWatch アラームの通知は SNS からメールで届く
 - State は S3 に保存し、`use_lockfile` でロックする（DynamoDB は使わない）
 
@@ -22,18 +23,18 @@ NAGOYAMESHI（Laravel）を AWS で動かすための Terraform です。
 bootstrap/              State 用 S3 バケット（最初に 1回だけ実行。この State 自体はローカル）
   s3.tf                   State 用バケット・暗号化・バージョニング・HTTPS 以外を拒否
 modules/
-  network/              VPC・サブネット 6つ・IGW・NAT・ルートテーブル・S3 Gateway エンドポイント
+  network/              環境ごとの VPC・サブネット 6つ・IGW・NAT・ルートテーブル・S3 Gateway エンドポイント
     vpc.tf                VPC・Internet Gateway
-    subnet.tf             public / private-app / private-db × 2AZ
+    subnet.tf / locals.tf public / private-app / private-db × 2AZ（CIDR は VPC の CIDR から計算）
     nat_gateway.tf        Elastic IP・NAT Gateway（1a に 1つ）
     route_table.tf        ルートテーブルと関連付け
     vpc_endpoint.tf       S3 Gateway エンドポイント
-  alb/                  本番・検証で共有する ALB
+  alb/                  環境ごとの ALB
     alb.tf                ALB・リスナー（80→443 リダイレクト、443 の既定は 404）
-    security_group.tf     ALB の SG
+    security_group.tf     ALB の SG（送信元を allowed_cidrs で制限）
   ecs_service/          環境ごとの ECS サービス
     target_group.tf       ターゲットグループ（blue / green）
-    listener_rule.tf      ALB のリスナールール（検証は送信元 IP で制限）
+    listener_rule.tf      ALB のリスナールール（ホスト名で転送。ブルーグリーンの切り替えに使う）
     iam.tf                タスク実行ロール・タスクロール・インフラロール
     task_definition.tf    タスク定義（アプリ用・マイグレーション用）
     service.tf            ECS サービス（ブルーグリーン）
@@ -53,8 +54,7 @@ modules/
     codepipeline.tf       CodePipeline（V2）とそのロール
 envs/
   shared/               本番・検証で共有するリソース
-    network.tf / alb.tf   上のモジュールの呼び出し
-    acm.tf / route53.tf   証明書と DNS 検証レコード
+    acm.tf / route53.tf   証明書（example.com と *.example.com。両環境の ALB で使う）と DNS 検証レコード
     ecs.tf / ecr.tf       ECS クラスター・ECR リポジトリ
     sns.tf / budgets.tf   アラーム通知・請求アラート
     s3_images.tf / cloudfront.tf          画像用 S3 と CloudFront
@@ -62,6 +62,7 @@ envs/
     random.tf             バケット名の接尾辞
   prod/                 本番
     main.tf               shared の State の参照・共通の値（locals）
+    network.tf / alb.tf   VPC・NAT Gateway・ALB（モジュールの呼び出し）
     security_group.tf     ECS タスクの SG
     rds.tf / ecs.tf / monitoring.tf / cicd.tf   モジュールの呼び出し
     ssm.tf                Terraform が登録する SSM パラメータ
@@ -74,8 +75,8 @@ envs/
 
 | 対象 | 規則 | 例 |
 |---|---|---|
-| AWS リソース名（共有） | `<プロジェクト>-<役割>` | `nagoyameshi-alb`、`nagoyameshi-alarm` |
-| AWS リソース名（環境ごと） | `<プロジェクト>-<環境>-<役割>` | `nagoyameshi-prod-ecs`、`nagoyameshi-stg-rds` |
+| AWS リソース名（共有） | `<プロジェクト>-<役割>` | `nagoyameshi-alarm`、`nagoyameshi-images-…` |
+| AWS リソース名（環境ごと） | `<プロジェクト>-<環境>-<役割>` | `nagoyameshi-prod`（VPC・ALB）、`nagoyameshi-prod-ecs`、`nagoyameshi-stg-rds` |
 | 環境の識別子 | 本番 `prod`、検証 `stg`、共有 `shared` | |
 | S3 バケット | `<プロジェクト>-<用途>-<ランダムな 8文字>`（世界で一意にするため） | `nagoyameshi-images-1a2b3c4d` |
 | SSM パラメータ | `/<プロジェクト>/<環境>/<Laravel の変数名>` | `/nagoyameshi/prod/DB_PASSWORD` |
@@ -183,7 +184,7 @@ terraform apply
 
 ```bash
 ENV=stg
-SUBNETS=$(cd envs/shared && terraform output -json app_subnet_ids | tr -d '[]"')
+SUBNETS=$(cd envs/$ENV && terraform output -json app_subnet_ids | tr -d '[]"')
 SG=$(cd envs/$ENV && terraform output -raw ecs_security_group_id)
 aws ecs run-task --cluster nagoyameshi --launch-type FARGATE \
   --task-definition nagoyameshi-$ENV-migrate \
@@ -266,7 +267,7 @@ cd ../shared   && terraform destroy
 tfvars の例に入っている値は仮のものです。実際の値に置き換えてください。
 
 - ドメイン名
-- 検証サイトにアクセスを許可する IP（`allowed_cidrs`）
+- 検証サイトにアクセスを許可する IP（`allowed_cidrs`。検証用 ALB の SG に入る）
 - 通知先のメールアドレス
 - 送信元のメールアドレス
 - GitHub のリポジトリとブランチ（検証は仮に `develop`）

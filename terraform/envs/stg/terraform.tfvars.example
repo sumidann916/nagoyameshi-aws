@@ -2,9 +2,10 @@
 env            = "stg"
 tfstate_bucket = "nagoyameshi-tfstate-xxxxxxxx" # bootstrap の出力
 
+vpc_cidr = "10.1.0.0/16" # 本番 10.0.0.0/16・検証 10.1.0.0/16
+
 subdomain     = "stg"                 # stg.example.com
-allowed_cidrs = ["203.0.113.10/32"]   # 社内の IP（未定・確認事項。この値は例）
-rule_priority = 10                    # 403 ルールは 20 になる
+allowed_cidrs = ["203.0.113.10/32"]   # ALB に接続できる社内の IP（未定・確認事項。この値は例）
 
 app_env           = "staging"
 mail_from_address = "no-reply@example.com" # 未定（確認事項）
