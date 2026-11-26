@@ -1,0 +1,4 @@
+# terraform.tfvars にコピーして値を入れる（terraform.tfvars は Git に含めない）
+domain_name        = "example.com"        # 未定（確認事項）
+alarm_email        = "alerts@example.com" # 未定（確認事項）
+monthly_budget_usd = 250

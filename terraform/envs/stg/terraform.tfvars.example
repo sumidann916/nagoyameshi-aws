@@ -1,0 +1,25 @@
+# 検証。terraform.tfvars にコピーして値を入れる（terraform.tfvars は Git に含めない）
+env            = "stg"
+tfstate_bucket = "nagoyameshi-tfstate-xxxxxxxx" # bootstrap の出力
+
+subdomain     = "stg"                 # stg.example.com
+allowed_cidrs = ["203.0.113.10/32"]   # 社内の IP（未定・確認事項。この値は例）
+rule_priority = 10                    # 403 ルールは 20 になる
+
+app_env           = "staging"
+mail_from_address = "no-reply@example.com" # 未定（確認事項）
+
+min_count = 1 # 最小構成。Auto Scaling しない
+max_count = 1
+
+db_multi_az            = false
+db_deletion_protection = false
+db_final_snapshot      = false
+
+full_monitoring    = false # ログの ERROR のみ
+log_retention_days = 7
+
+github_owner     = "your-github-username" # 未定（確認事項）
+github_repo      = "your-repository-name" # 未定（確認事項）
+github_branch    = "develop"              # 未定（確認事項）
+require_approval = false

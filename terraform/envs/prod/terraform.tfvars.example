@@ -1,0 +1,25 @@
+# 本番。terraform.tfvars にコピーして値を入れる（terraform.tfvars は Git に含めない）
+env            = "prod"
+tfstate_bucket = "nagoyameshi-tfstate-xxxxxxxx" # bootstrap の出力
+
+subdomain     = "" # APEX（example.com）
+allowed_cidrs = [] # 誰でもアクセス可
+rule_priority = 30
+
+app_env           = "production"
+mail_from_address = "no-reply@example.com" # 未定（確認事項）
+
+min_count = 2 # 1a・1c に 1つずつ
+max_count = 4
+
+db_multi_az            = true
+db_deletion_protection = true
+db_final_snapshot      = true
+
+full_monitoring    = true
+log_retention_days = 14
+
+github_owner     = "your-github-username" # 未定（確認事項）
+github_repo      = "your-repository-name" # 未定（確認事項）
+github_branch    = "main"
+require_approval = false

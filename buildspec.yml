@@ -1,0 +1,78 @@
+version: 0.2
+
+# CodeBuild の環境変数（Terraform の modules/cicd で設定済み）
+#   REPOSITORY_URI            PHP-FPM（Laravel）イメージの ECR リポジトリ
+#   NGINX_REPOSITORY_URI      nginx イメージの ECR リポジトリ
+#   CONTAINER_NAME            タスク定義の PHP-FPM コンテナ名（app）
+#   NGINX_CONTAINER_NAME      タスク定義の nginx コンテナ名（nginx）
+#   ENV_TAG                   環境のタグ（prod / stg）。タスク定義とマイグレーション用タスクが参照する
+#   ECS_CLUSTER_NAME / MIGRATION_TASK_DEFINITION / SUBNET_ID_1 / SUBNET_ID_2 / SECURITY_GROUP_ID
+
+env:
+  variables:
+    APP_DOCKERFILE: docker/php-fpm/Dockerfile
+    NGINX_DOCKERFILE: docker/nginx/Dockerfile
+
+phases:
+  pre_build:
+    commands:
+      - echo "[PRE_BUILD] Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${REPOSITORY_URI%%/*}
+      # コミット ID（先頭 7文字）をタグにして、前のバージョンに戻せるようにする
+      - IMAGE_TAG=$(echo "${CODEBUILD_RESOLVED_SOURCE_VERSION}" | cut -c 1-7)
+      - IMAGE_TAG=${IMAGE_TAG:-manual-${CODEBUILD_BUILD_NUMBER}}
+      - NGINX_CONTAINER_NAME=${NGINX_CONTAINER_NAME:-nginx}
+      - echo "IMAGE_TAG=${IMAGE_TAG} ENV_TAG=${ENV_TAG}"
+
+  build:
+    on-failure: ABORT
+    commands:
+      - echo "[BUILD] Building PHP-FPM (Laravel) image..."
+      - docker build -f ${APP_DOCKERFILE} -t ${REPOSITORY_URI}:${IMAGE_TAG} -t ${REPOSITORY_URI}:${ENV_TAG} .
+      - echo "[BUILD] Building nginx image..."
+      - docker build -f ${NGINX_DOCKERFILE} -t ${NGINX_REPOSITORY_URI}:${IMAGE_TAG} -t ${NGINX_REPOSITORY_URI}:${ENV_TAG} .
+
+  post_build:
+    commands:
+      - echo "[POST_BUILD] Pushing images to ECR..."
+      - docker push ${REPOSITORY_URI}:${IMAGE_TAG}
+      - docker push ${REPOSITORY_URI}:${ENV_TAG}
+      - docker push ${NGINX_REPOSITORY_URI}:${IMAGE_TAG}
+      - docker push ${NGINX_REPOSITORY_URI}:${ENV_TAG}
+
+      # マイグレーション専用タスクを起動（ENV_TAG のイメージ＝今 push した版を使う。パブリック IP は付けない）
+      - echo "[POST_BUILD] Running Laravel migration via ECS RunTask..."
+      - |
+        TASK_ARN=$(aws ecs run-task \
+          --cluster ${ECS_CLUSTER_NAME} \
+          --launch-type FARGATE \
+          --task-definition ${MIGRATION_TASK_DEFINITION} \
+          --network-configuration "awsvpcConfiguration={subnets=[${SUBNET_ID_1},${SUBNET_ID_2}],securityGroups=[${SECURITY_GROUP_ID}],assignPublicIp=DISABLED}" \
+          --region ${AWS_DEFAULT_REGION} \
+          --query 'tasks[0].taskArn' --output text)
+      - |
+        if [ -z "${TASK_ARN}" ] || [ "${TASK_ARN}" = "None" ]; then
+          echo "マイグレーション用タスクを起動できませんでした"; exit 1
+        fi
+      - echo "Waiting for migration task ${TASK_ARN} ..."
+      - aws ecs wait tasks-stopped --cluster ${ECS_CLUSTER_NAME} --tasks ${TASK_ARN} --region ${AWS_DEFAULT_REGION}
+      # 終了コードが 0 以外ならビルドを失敗させ、デプロイに進ませない
+      - |
+        EXIT_CODE=$(aws ecs describe-tasks --cluster ${ECS_CLUSTER_NAME} --tasks ${TASK_ARN} --region ${AWS_DEFAULT_REGION} \
+          --query "tasks[0].containers[?name=='${CONTAINER_NAME}'].exitCode | [0]" --output text)
+        echo "Migration exit code: ${EXIT_CODE}"
+        if [ "${EXIT_CODE}" != "0" ]; then
+          echo "マイグレーションが失敗しました。CloudWatch Logs（/ecs/<環境名>/migration）を確認してください"; exit 1
+        fi
+
+      # ECS デプロイ用のイメージ定義ファイル（2つのコンテナともコミット ID のタグに更新する）
+      - echo "[POST_BUILD] Writing imagedefinitions.json for ECS Deploy..."
+      - |
+        printf '[{"name":"%s","imageUri":"%s:%s"},{"name":"%s","imageUri":"%s:%s"}]' \
+          "${CONTAINER_NAME}" "${REPOSITORY_URI}" "${IMAGE_TAG}" \
+          "${NGINX_CONTAINER_NAME}" "${NGINX_REPOSITORY_URI}" "${IMAGE_TAG}" > imagedefinitions.json
+      - cat imagedefinitions.json
+
+artifacts:
+  files:
+    - imagedefinitions.json

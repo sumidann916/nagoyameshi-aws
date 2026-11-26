@@ -1,0 +1,17 @@
+# laravel-nagoyameshi/.dockerignore
+
+.env
+.git
+
+# 本番イメージに入れないもの（ビルドの中で作り直す、またはローカル専用）
+**/.env
+laravel-nagoyameshi/node_modules
+laravel-nagoyameshi/vendor
+laravel-nagoyameshi/public/build
+laravel-nagoyameshi/public/hot
+laravel-nagoyameshi/public/storage
+laravel-nagoyameshi/storage/logs/*.log
+laravel-nagoyameshi/storage/framework/cache/data
+laravel-nagoyameshi/storage/framework/sessions/*
+laravel-nagoyameshi/storage/framework/views/*.php
+laravel-nagoyameshi/sql/data
